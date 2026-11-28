@@ -91,15 +91,26 @@ function saveHybridStore(store: DataStore): void {
 }
 
 async function supabaseFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    apikey: SUPABASE_KEY!,
+    "Content-Type": "application/json",
+    Prefer: "return=representation",
+    ...((init?.headers as Record<string, string>) || {}),
+  };
+
+  // Kunci baru Supabase (sb_secret_...) adalah opaque API key, hanya dipasang di header 'apikey'.
+  // Jika kunci adalah format lama JWT (eyJ...), sertakan juga header Authorization Bearer.
+  if (
+    SUPABASE_KEY &&
+    !SUPABASE_KEY.startsWith("sb_secret_") &&
+    !SUPABASE_KEY.startsWith("sb_publishable_")
+  ) {
+    headers["Authorization"] = `Bearer ${SUPABASE_KEY}`;
+  }
+
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
     ...init,
-    headers: {
-      apikey: SUPABASE_KEY!,
-      Authorization: `Bearer ${SUPABASE_KEY!}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-      ...(init?.headers || {}),
-    },
+    headers,
     cache: "no-store",
   });
 
